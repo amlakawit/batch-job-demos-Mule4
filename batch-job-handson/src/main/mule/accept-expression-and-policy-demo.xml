@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
+	<flow name="accept-expression-and-policy-demoFlow" doc:id="a3ea5652-b50b-456f-a9d9-2c232ca896f0" >
+		<file:listener doc:name="On New or Updated File" doc:id="ccf01529-9f57-48f1-aea2-70a238f12aa3" config-ref="File_Config" autoDelete="true">
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+			<file:matcher filenamePattern="*.csv" />
+		</file:listener>
+		<ee:transform doc:name="to JSON" doc:id="f4ace68e-1c84-454c-a8cc-e35067ebc8da" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="accept-expression-and-policy-demoBatch_Job" doc:id="6c94cb4c-fc8f-47fe-a4a0-d39136e56fdf" >
+			<batch:process-records >
+				<batch:step name="Apply-discount-on-prices-greater-than300" doc:id="d1e84ee3-3d4a-4ab6-ba4b-f67e6572d89b" acceptExpression="payload.price &gt; 300">
+					<set-payload value="#[payload*0.9]" doc:name="10% discount" doc:id="b5c723a9-4b30-40e5-ae40-08aafc7c43a7" />
+				</batch:step>
+				<batch:step name="return-diamonds-with-price-less-than295" doc:id="bd9ecc0c-ce9d-4934-a638-65d74737452b" acceptExpression="payload.price &lt; 295">
+					<set-payload value="#[payload]" doc:name="Set Payload" doc:id="29d98de6-ce31-4fb4-867e-268d6379fb8f" />
+				</batch:step>
+			</batch:process-records>
+		</batch:job>
+	</flow>
+</mule>

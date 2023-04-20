@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="process-large-dataFlow" doc:id="0326d512-c18e-4597-b993-da88418849a1" >
+		<file:listener doc:name="On New or Updated File" doc:id="9412f410-050d-4b00-b3de-e684cff813b4" config-ref="File_Config" autoDelete="true">
+			<scheduling-strategy >
+				<fixed-frequency frequency="5" timeUnit="SECONDS" />
+			</scheduling-strategy>
+			<file:matcher filenamePattern="*.csv" />
+		</file:listener>
+		<ee:transform doc:name="to JSON" doc:id="1f970f76-0193-4a3b-998f-eaf15e510a0a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="process-large-dataBatch_Job" doc:id="b8c5e24a-a0c6-4b2d-aa1b-30c38bfd7d53" >
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="1a4914f5-97ed-40f2-bc83-19685073ff67" >
+					<ee:transform doc:name="Transform Message" doc:id="2ac2a675-e586-4108-844e-4416a2f23d5d" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"productID": payload.productID,
+	"carat": payload.carat, 
+	"cut": payload.cut, 
+	"color": payload.color, 
+	"clarity": payload.clarity,
+	"depth": payload.depth,
+	 "table": payload.table,
+	 "price_old": payload.price, 
+	 "price_new": payload.price*0.9,
+	 "x": payload.x, 
+	 "y": payload.y, 
+	 "z": payload.z
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="d1201d15-d796-4dcb-b74c-203a077b702b" streaming="true">
+						<db:bulk-insert doc:name="Bulk insert" doc:id="03da1bf1-012c-4d5c-8f5c-473863675cc3" config-ref="Database_Config">
+							<db:sql ><![CDATA[INSERT INTO diamonds_discount(productID, carat, cut, color, clarity, depth, `table`, price_old, price_new, x, y, z )
+VALUES (:productID, :carat, :cut , :color, :clarity, :depth, :table, :price_old, :price_new, :x, :y, :z );]]></db:sql>
+						</db:bulk-insert>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+		</batch:job>
+	</flow>
+</mule>

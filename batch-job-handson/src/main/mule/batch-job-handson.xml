@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="scop-of-payload-and-variables-Flow" doc:id="3b90da74-1f35-485a-910a-db2a479372d7" >
+		<http:listener doc:name="/GET:batch1" doc:id="0bfaea61-8785-4de7-8214-b6d87d2eac95" config-ref="HTTP_Listener_config" path="/batch1"/>
+		<set-payload value="#[[1,2,3]]" doc:name="[1, 2, 3]" doc:id="5fa23758-9cc7-4ad8-b733-accba9aaf2a4" />
+		<set-variable value="#[max(payload)]" doc:name="var1=max(payload)" doc:id="bb4ea907-a585-43a4-80e3-ed0fdf561810" variableName="var1"/>
+		<batch:job jobName="batch-job" doc:id="8705d712-285d-4a2f-aac7-3bb5e2498dd0" >
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="654dcfa6-0b0d-4a9c-b200-0433e9653853" >
+					<set-variable value="#[vars.var1 *3]" doc:name="var2 = var1*3" doc:id="d36b1a43-1e7e-431a-b8d7-5d38eab58332" variableName="var2"/>
+					<set-variable value="#[payload * 10]" doc:name="var3= payload*10" doc:id="94347f7b-f5fd-4c49-b773-aed89236fb25" variableName="var3" />
+					<logger level="INFO" doc:name="payload and vars(within bactch job scope) " doc:id="2cc167cb-ac42-4b5b-bf1b-92e4e4197d04" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"payload": payload,&#10;	"var1": vars.var1,&#10;	"var2": vars.var2,&#10;	"var3": vars.var3&#10;}]'/>
+					<ee:transform doc:name="payload + 1" doc:id="ca66ec70-7a16-4c12-ad1e-66aa511b0a04" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload + 1]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete>
+				<logger level="INFO" doc:name="summary" doc:id="c1e3a062-9073-4e28-bf98-3e9d8e5fd59f" message="#[payload]"/>
+			</batch:on-complete>
+		</batch:job>
+		<logger level="INFO" doc:name="payload and vars(in the end)" doc:id="d78d9dcd-9e20-470a-9ec2-172a2489bd8a" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"payload": payload,&#10;	"var1": vars.var1,&#10;	"var2": vars.var2&#10;}]'/>
+		<ee:transform doc:name="Transform Message" doc:id="4768001b-e94a-44d5-b3e2-033e9b0f010c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "main thread finished"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
